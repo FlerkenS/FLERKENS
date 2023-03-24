@@ -1,0 +1,63 @@
+pragma solidity ^0.8.0;
+
+// 定义一个智能合约
+contract DataCollection {
+
+    // 定义一个映射，用于记录用户的数据采集行为
+    mapping (address => User) public users;
+
+    // 定义一个结构体，用于表示用户的数据采集行为
+    struct User {
+        uint256 startTime;  // 开始时间
+        uint256 dataCount;  // 采集的数据数量
+        uint256 dataQuality;  // 数据质量（0-100之间的数字）
+    }
+
+    // 定义治理token：NT，初始数量为2830000000个
+    uint256 public governanceToken = 2830000000;
+
+    // 定义数据token：NB，每1小时产生10M数据生产1个NB
+    uint256 public dataToken = 0;
+
+    // 定义开始采集数据的函数
+    function startCollecting() public {
+        // 检查用户是否已经在采集数据
+        require(users[msg.sender].startTime == 0, "Already collecting data");
+
+        // 记录用户的开始时间
+        users[msg.sender].startTime = block.timestamp;
+    }
+
+    // 定义停止采集数据的函数
+    function stopCollecting() public {
+        // 检查用户是否正在采集数据
+        require(users[msg.sender].startTime != 0, "Not collecting data");
+
+        // 计算采集的数据数量和数据质量
+        uint256 duration = block.timestamp - users[msg.sender].startTime;
+        uint256 dataCount = duration / 3600 * 10;
+        uint256 dataQuality = users[msg.sender].dataQuality;
+
+        // 更新用户的数据采集行为
+        users[msg.sender].startTime = 0;
+        users[msg.sender].dataCount += dataCount;
+
+        // 增加数据token：NB
+        dataToken += dataCount;
+
+        // 每10小时生产100M数据生产1个NT
+        if (duration >= 36000) {
+            uint256 governanceTokenCount = duration / 36000;
+            governanceToken += governanceTokenCount;
+        }
+    }
+
+    // 定义更新数据质量的函数
+    function updateDataQuality(uint256 quality) public {
+        // 检查用户是否正在采集数据
+        require(users[msg.sender].startTime != 0, "Not collecting data");
+
+        // 更新用户的数据质量
+        users[msg.sender].dataQuality = quality;
+    }
+}
